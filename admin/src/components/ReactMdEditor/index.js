@@ -5,6 +5,7 @@ import { getCodeString } from 'rehype-rewrite';
 import katex from 'katex';
 import 'katex/dist/katex.css';
 import MediaLib from "../MediaLib";
+import IntraReferDialog from "../IntraReferDialog";
 import styled from "styled-components";
 import "@uiw/react-markdown-preview/dist/markdown.css";
 import "@uiw/react-md-editor/dist/mdeditor.min.css";
@@ -12,6 +13,12 @@ import { Stack } from "@strapi/design-system/Stack";
 import { Box } from "@strapi/design-system/Box";
 import { Typography } from "@strapi/design-system/Typography";
 import { useIntl } from "react-intl";
+import { Icon, } from '@strapi/design-system';
+import { ExternalLink } from '@strapi/icons';
+
+  // @strapi/icons/
+// https://design-system-git-main-strapijs.vercel.app/?path=/docs/design-system-components-theme--icons
+
 
 const Wrapper = styled.div`
   > div:nth-child(2) {
@@ -71,6 +78,7 @@ const Editor = ({
   const { formatMessage } = useIntl();
   const [mediaLibVisible, setMediaLibVisible] = useState(false);
   const [mediaLibSelection, setMediaLibSelection] = useState(-1);
+  const [intraReferVisible, setIntraReferVisible] = useState(false);
 
   const handleToggleMediaLib = () => setMediaLibVisible((prev) => !prev);
 
@@ -93,6 +101,24 @@ const Editor = ({
     onChange({ target: { name, value: newValue || "" } });
     handleToggleMediaLib();
   };
+
+  const handleToggleIntraRefer = () => setIntraReferVisible((prev) => !prev);
+
+  const handleChangeIntraRefer = (type, content) => {
+    let newValue = value ? value : "";
+    const uri = `/iref/${type.uid}/${content.id}`
+    const linkTag = `[[iref]](${uri})`
+    if (mediaLibSelection > -1) {
+      newValue =
+        value.substring(0, mediaLibSelection) +
+        linkTag +
+        value.substring(mediaLibSelection);
+    } else {
+      newValue = `${newValue}${linkTag}`;
+    }
+    onChange({ target: { name, value: newValue || "" } });
+    handleToggleIntraRefer()    
+  }
 
   return (
     <Stack size={1}>
@@ -143,6 +169,18 @@ const Editor = ({
                 handleToggleMediaLib();
               },
             },
+            {
+              name: "iref",
+              keyCommand: "iref",
+              buttonProps: { "aria-label": "Insert title3" },
+              icon: (
+                <Icon as={ExternalLink} width={'12px'} height={'12px'} />
+              ),
+              execute: (state, api) => {
+                setMediaLibSelection(state.selection.end);
+                handleToggleIntraRefer();
+              },
+            },
             commands.unorderedListCommand,
             commands.orderedListCommand,
             commands.checkedListCommand,
@@ -175,7 +213,7 @@ const Editor = ({
                   });
                   return <code style={{ fontSize: '150%' }} dangerouslySetInnerHTML={{ __html: html }} />;
                 }
-                return <code className={String(className)}>{txt}</code>;
+                return <code className={String(className)}>{code}</code>;
               },
             },
           }}          
@@ -185,6 +223,11 @@ const Editor = ({
           isOpen={mediaLibVisible}
           onChange={handleChangeAssets}
           onToggle={handleToggleMediaLib}
+        />
+        <IntraReferDialog
+          isOpen={intraReferVisible}
+          onChange={handleChangeIntraRefer}
+          onToggle={handleToggleIntraRefer}
         />
       </Wrapper>
       {error && (
